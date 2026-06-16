@@ -1,5 +1,5 @@
 resource "aws_iam_role" "component" {
-  name = "${var.project}-${var.environment}-component-role"
+  name = "${var.project}-${var.environment}-${var.component}-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -40,6 +40,6 @@ resource "aws_iam_role_policy" "ssm_access" {
 }
 
 resource "aws_iam_instance_profile" "component" {
-  name = "${var.project}-${var.environment}-component-profile"
+  name = "${var.project}-${var.environment}-${var.component}-profile"
   role = aws_iam_role.component.name
 }
