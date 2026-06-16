@@ -14,7 +14,7 @@ resource "aws_iam_role" "component" {
 }
 
 resource "aws_iam_role_policy" "ssm_access" {
-  name = "${var.project}-${var.environment}-ssm-access"
+  name = "${var.project}-${var.environment}-${var.component}-ssm-access"
   role = aws_iam_role.component.id
 
   policy = jsonencode({
