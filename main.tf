@@ -80,10 +80,6 @@ resource "aws_launch_template" "main" {
   instance_type                        = "t3.micro"
   vpc_security_group_ids               = [local.sg_id]
 
-  # Attach IAM role to EC2 instances
-  iam_instance_profile {
-    name = aws_iam_instance_profile.component.name
-  }
 
   # each time we run terraform apply, it will create new version of launch template and update default version to latest one
   update_default_version = true
