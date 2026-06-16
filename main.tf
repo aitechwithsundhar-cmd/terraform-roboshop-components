@@ -7,56 +7,56 @@ resource "aws_instance" "main" {
 
     local.common_tags,
     {
-      Name      = "${var.project}-${var.environment}-${var.component}"
+      Name = "${var.project}-${var.environment}-${var.component}"
     }
   )
 }
 resource "terraform_data" "main" {
-    triggers_replace = [
-        aws_instance.main.id
-    ]
-    connection {
-        type        = "ssh"
-        user        = "ec2-user"
-        password    = "DevOps321"
-        host        = aws_instance.main.private_ip
-    }
-    provisioner "file" {
-        source      = "bootstrap.sh"
-        destination = "/tmp/bootstrap-host.sh"
-    }
-
-    provisioner "remote-exec" {
-  inline = [
-    "chmod +x /tmp/bootstrap-host.sh",
-    "sudo sh /tmp/bootstrap-host.sh ${var.component} ${var.environment} ${var.app_version}"
+  triggers_replace = [
+    aws_instance.main.id
   ]
-}
+  connection {
+    type     = "ssh"
+    user     = "ec2-user"
+    password = "DevOps321"
+    host     = aws_instance.main.private_ip
+  }
+  provisioner "file" {
+    source      = "bootstrap.sh"
+    destination = "/tmp/bootstrap-host.sh"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "chmod +x /tmp/bootstrap-host.sh",
+      "sudo sh /tmp/bootstrap-host.sh ${var.component} ${var.environment} ${var.app_version}"
+    ]
+  }
 }
 resource "aws_ec2_instance_state" "main" {
   instance_id = aws_instance.main.id
   state       = "stopped"
-  depends_on = [terraform_data.main]
+  depends_on  = [terraform_data.main]
 }
 
 resource "aws_ami_from_instance" "main" {
-    name               = "${var.project}-${var.environment}-${var.component}-ami"
-    source_instance_id = aws_instance.main.id
-    depends_on = [aws_ec2_instance_state.main]
-    description        = "AMI for ${var.project} ${var.environment} ${var.component} component"
-    tags = merge(
-        {
-        Name      = "${var.project}-${var.environment}-${var.component}-ami"
-        },
-        local.common_tags
-    )
+  name               = "${var.project}-${var.environment}-${var.component}-ami"
+  source_instance_id = aws_instance.main.id
+  depends_on         = [aws_ec2_instance_state.main]
+  description        = "AMI for ${var.project} ${var.environment} ${var.component} component"
+  tags = merge(
+    {
+      Name = "${var.project}-${var.environment}-${var.component}-ami"
+    },
+    local.common_tags
+  )
 }
 
 resource "aws_lb_target_group" "main" {
-  name     = "${var.project}-${var.environment}-${var.component}"
-  port     = local.port_number
-  protocol = "HTTP"
-  vpc_id   = local.vpc_id
+  name                 = "${var.project}-${var.environment}-${var.component}"
+  port                 = local.port_number
+  protocol             = "HTTP"
+  vpc_id               = local.vpc_id
   deregistration_delay = 60
 
   health_check {
@@ -64,21 +64,21 @@ resource "aws_lb_target_group" "main" {
     interval            = 10
     matcher             = "200-299"
     path                = local.health_check_path
-    port               = local.port_number
-    protocol           = "HTTP"
-    timeout            = 2
+    port                = local.port_number
+    protocol            = "HTTP"
+    timeout             = 2
     unhealthy_threshold = 2
   }
 }
 
 resource "aws_launch_template" "main" {
-  name = "${var.project}-${var.environment}-${var.component}"
-  image_id      = aws_ami_from_instance.main.id
+  name     = "${var.project}-${var.environment}-${var.component}"
+  image_id = aws_ami_from_instance.main.id
 
   # once autoscaling sees less traffic, it will terminate the instance 
   instance_initiated_shutdown_behavior = "terminate"
-  instance_type                      = "t3.micro"
-  vpc_security_group_ids              = [local.sg_id]
+  instance_type                        = "t3.micro"
+  vpc_security_group_ids               = [local.sg_id]
 
   # each time we run terraform apply, it will create new version of launch template and update default version to latest one
   update_default_version = true
@@ -88,17 +88,17 @@ resource "aws_launch_template" "main" {
     resource_type = "instance"
     tags = merge(
       {
-        Name      = "${var.project}-${var.environment}-${var.component}"
+        Name = "${var.project}-${var.environment}-${var.component}"
       },
       local.common_tags
     )
   }
-    # tags for valume creted by instances
-    tag_specifications {
-    resource_type = "volume"  
+  # tags for valume creted by instances
+  tag_specifications {
+    resource_type = "volume"
     tags = merge(
       {
-        Name      = "${var.project}-${var.environment}-${var.component}"
+        Name = "${var.project}-${var.environment}-${var.component}"
       },
       local.common_tags
     )
@@ -132,20 +132,20 @@ resource "aws_autoscaling_group" "main" {
     triggers = ["launch_template"]
   }
 
-dynamic "tag" {
-  for_each = merge(
-    {
-      Name      = "${var.project}-${var.environment}-${var.component}"
-    },
-    local.common_tags
-  )
+  dynamic "tag" {
+    for_each = merge(
+      {
+        Name = "${var.project}-${var.environment}-${var.component}"
+      },
+      local.common_tags
+    )
 
-  content {
-    key                 = tag.key
-    value               = tag.value
-    propagate_at_launch = true
+    content {
+      key                 = tag.key
+      value               = tag.value
+      propagate_at_launch = true
+    }
   }
-}
 
   timeouts {
     delete = "15m"
@@ -154,9 +154,9 @@ dynamic "tag" {
 
 # auto scaling policy to scale out when cpu utilization is more than 70% for 5 min
 resource "aws_autoscaling_policy" "main" {
-  name                   = "${var.project}-${var.environment}-${var.component}"
-  autoscaling_group_name = aws_autoscaling_group.main.name
-  policy_type            = "TargetTrackingScaling"  
+  name                      = "${var.project}-${var.environment}-${var.component}"
+  autoscaling_group_name    = aws_autoscaling_group.main.name
+  policy_type               = "TargetTrackingScaling"
   estimated_instance_warmup = 120
   target_tracking_configuration {
     predefined_metric_specification {
@@ -179,17 +179,17 @@ resource "aws_lb_listener_rule" "main" {
       values = local.host_header
     }
 
-}
+  }
 }
 
 # aws command to destory instance 
 resource "terraform_data" "main_delete" {
-    triggers_replace = [
-        aws_instance.main.id
-    ]
-    depends_on = [aws_autoscaling_policy.main]
-# it excutes in bastion 
-    provisioner "local-exec" {
-command = "aws ec2 terminate-instances --instance-ids ${aws_instance.main.id}"
-    }
+  triggers_replace = [
+    aws_instance.main.id
+  ]
+  depends_on = [aws_autoscaling_policy.main]
+  # it excutes in bastion 
+  provisioner "local-exec" {
+    command = "aws ec2 terminate-instances --instance-ids ${aws_instance.main.id}"
+  }
 }
