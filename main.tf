@@ -29,7 +29,7 @@ resource "terraform_data" "main" {
     provisioner "remote-exec" {
   inline = [
     "chmod +x /tmp/bootstrap-host.sh",
-    "sudo sh /tmp/bootstrap-host.sh ${component} ${var.project} ${var.environment}"
+    "sudo sh /tmp/bootstrap-host.sh ${component} ${var.environment} ${var.app_version}"
   ]
 }
 }
@@ -63,10 +63,10 @@ resource "aws_lb_target_group" "main" {
     healthy_threshold   = 2
     interval            = 10
     matcher             = "200-299"
-    path                = var.health_check_path
-    port               = var.port_number
+    path                = local.health_check_path
+    port               = local.port_number
     protocol           = "HTTP"
-    timeout            = 5
+    timeout            = 2
     unhealthy_threshold = 2
   }
 }
@@ -178,7 +178,7 @@ resource "aws_autoscaling_policy" "main" {
 
 # listener rules to forward traffic to target group
 resource "aws_lb_listener_rule" "main" {
-  listener_arn = local.backend_alb_listener_arn
+  listener_arn = local.alb_listener_arn
   priority     = var.rule_priority
   action {
     type             = "forward"
@@ -186,7 +186,7 @@ resource "aws_lb_listener_rule" "main" {
   }
   condition {
     host_header {
-      values = ["${var.component}.backend-${var.environment}.${var.domain_name}"]
+      values = local.host_header
     }
 
 }

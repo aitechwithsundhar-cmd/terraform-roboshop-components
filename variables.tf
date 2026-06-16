@@ -1,14 +1,23 @@
+variable "project"{
+default = "roboshop"
+}
+variable "environment"{
+  default = "dev" 
+}
+
 variable "component" {
   type   = string
 }
 
-variable "health_check_path" {
-  default = "/health"
+variable "app_version" {
+  type   = string
+  default = "v3"
 }
 
-variable "port_number" {
-  default = 8080
-}
+
 variable "rule_priority" {
-  default = 10
+}
+
+variable "domain_name" {
+  default = "techdaws.online"
 }
