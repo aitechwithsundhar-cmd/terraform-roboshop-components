@@ -75,10 +75,15 @@ resource "aws_launch_template" "main" {
   name     = "${var.project}-${var.environment}-${var.component}"
   image_id = aws_ami_from_instance.main.id
 
-  # once autoscaling sees less traffic, it will terminate the instance 
+  # once autoscaling sees less traffic, it will terminate the instance
   instance_initiated_shutdown_behavior = "terminate"
   instance_type                        = "t3.micro"
   vpc_security_group_ids               = [local.sg_id]
+
+  # Attach IAM role to EC2 instances
+  iam_instance_profile {
+    name = aws_iam_instance_profile.component.name
+  }
 
   # each time we run terraform apply, it will create new version of launch template and update default version to latest one
   update_default_version = true
@@ -93,7 +98,8 @@ resource "aws_launch_template" "main" {
       local.common_tags
     )
   }
-  # tags for valume creted by instances
+
+  # tags for volume created by instances
   tag_specifications {
     resource_type = "volume"
     tags = merge(
