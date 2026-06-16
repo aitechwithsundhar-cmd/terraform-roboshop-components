@@ -7,7 +7,7 @@ resource "aws_instance" "main" {
 
     local.common_tags,
     {
-      Name      = "${var.project}-${var.environment}-component"
+      Name      = "${var.project}-${var.environment}-${var.component}"
     }
   )
 }
@@ -29,7 +29,7 @@ resource "terraform_data" "main" {
     provisioner "remote-exec" {
   inline = [
     "chmod +x /tmp/bootstrap-host.sh",
-    "sudo sh /tmp/bootstrap-host.sh ${component} ${var.environment} ${var.app_version}"
+    "sudo sh /tmp/bootstrap-host.sh ${var.component} ${var.environment} ${var.app_version}"
   ]
 }
 }
@@ -54,7 +54,7 @@ resource "aws_ami_from_instance" "main" {
 
 resource "aws_lb_target_group" "main" {
   name     = "${var.project}-${var.environment}-${var.component}"
-  port     = var.port_number
+  port     = local.port_number
   protocol = "HTTP"
   vpc_id   = local.vpc_id
   deregistration_delay = 60
@@ -96,16 +96,6 @@ resource "aws_launch_template" "main" {
     # tags for valume creted by instances
     tag_specifications {
     resource_type = "volume"  
-    tags = merge(
-      {
-        Name      = "${var.project}-${var.environment}-${var.component}"
-      },
-      local.common_tags
-    )
-  }
-  # this is launch tamplete
-    tag_specifications {
-    resource_type = "instance"
     tags = merge(
       {
         Name      = "${var.project}-${var.environment}-${var.component}"
